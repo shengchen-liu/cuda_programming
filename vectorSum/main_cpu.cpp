@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 
     size_t size = n * sizeof(float);
 
-    // host memery
+    // host memory
     float *a = (float *)malloc(size);
     float *b = (float *)malloc(size);
     float *c = (float *)malloc(size);
@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
 
     //for (int i = 0; i < 10; i++) 
     //    cout << vecA[i] << " " << vecB[i] << " " << vecC[i] << endl;
-    double timeuse = (t2.tv_sec - t1.tv_sec) + (double)(t2.tv_usec - t1.tv_usec)/1000000.0;
-    cout << timeuse << endl;
+    double timeUse = (t2.tv_sec - t1.tv_sec) + (double)(t2.tv_usec - t1.tv_usec)/1000000.0;
+    cout << timeUse << endl;
 
     free(a);
     free(b);

@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
 
     size_t size = n * sizeof(float);
 
-    // host memery
+    // host memory
     float *a = (float *)malloc(size);
     float *b = (float *)malloc(size);
     float *c = (float *)malloc(size);
