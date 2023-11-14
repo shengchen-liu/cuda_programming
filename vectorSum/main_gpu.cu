@@ -13,6 +13,10 @@ void vecAddKernel(float* A_d, float* B_d, float* C_d, int n)
 }
 
 int main(int argc, char *argv[]) {
+    if (argc == 1) {
+      cout << "Usage: ./VectorSumGPU <n>" << endl;
+      return -1;
+    }
 
     int n = atoi(argv[1]);
     cout << n << endl;
@@ -46,7 +50,7 @@ int main(int argc, char *argv[]) {
     struct timeval t1, t2;
 
     int threadPerBlock = 256;
-    int blockPerGrid = (n + threadPerBlock - 1)/threadPerBlock;
+    int blockPerGrid = ceil(n / threadPerBlock);
     printf("threadPerBlock: %d \nblockPerGrid: %d \n",threadPerBlock,blockPerGrid);
 
     gettimeofday(&t1, NULL);
@@ -57,8 +61,6 @@ int main(int argc, char *argv[]) {
 
     cudaMemcpy(c,dc,size,cudaMemcpyDeviceToHost);
 
-    //for (int i = 0; i < 10; i++) 
-    //    cout << vecA[i] << " " << vecB[i] << " " << vecC[i] << endl;
     double timeuse = (t2.tv_sec - t1.tv_sec) + (double)(t2.tv_usec - t1.tv_usec)/1000000.0;
     cout << timeuse << endl;
 
