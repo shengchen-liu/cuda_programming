@@ -11,7 +11,7 @@
 #define K 512
 #define N 512
 
-#define BLOCK_SIZE 32  //block size ,each thread to calucate each bloc
+#define BLOCK_SIZE 32  //block size ,each thread to calculate each bloc
 
 void initial(float *array, int size)
 {
@@ -33,7 +33,6 @@ void printMatrix(float *array, int row, int col)
 		p = p + col;
 		printf("\n");
 	}
-	return;
 }
 
 
@@ -176,31 +175,31 @@ int main(int argc, char **argv)
 	printf("Computing matrix product using multiplicateMatrixOnDevice \n");
 	printf("------------------------------------------------------------------------------------\n");
 
-        int dimx = 2;
-        int dimy = 2;
-        dim3 block(dimx, dimy);
-        dim3 grid((M + block.x - 1) / block.x, (N + block.y - 1) / block.y);
-        //      dim3 grid(1, 1);
+	int dimx = 2;
+	int dimy = 2;
+	dim3 block(dimx, dimy);
+	dim3 grid((M + block.x - 1) / block.x, (N + block.y - 1) / block.y);
+	//      dim3 grid(1, 1);
 
-        cudaEvent_t gpustart, gpustop;
-        float elapsedTime = 0.0;
-        cudaEventCreate(&gpustart);
-        cudaEventCreate(&gpustop);
-        cudaEventRecord(gpustart, 0);
-        multiplicateMatrixOnDevice<<<grid,block>>> (d_A, d_B, d_C, M, K, N);
-        cudaDeviceSynchronize();
-        cudaEventRecord(gpustop, 0);
-        cudaEventSynchronize(gpustop);
+	cudaEvent_t gpustart, gpustop;
+	float elapsedTime = 0.0;
+	cudaEventCreate(&gpustart);
+	cudaEventCreate(&gpustop);
+	cudaEventRecord(gpustart, 0);
+	multiplicateMatrixOnDevice<<<grid,block>>> (d_A, d_B, d_C, M, K, N);
+	cudaDeviceSynchronize();
+	cudaEventRecord(gpustop, 0);
+	cudaEventSynchronize(gpustop);
 
-        cudaEventElapsedTime(&elapsedTime, gpustart, gpustop);
-        cudaEventDestroy(gpustart);
-        cudaEventDestroy(gpustop);
+	cudaEventElapsedTime(&elapsedTime, gpustart, gpustop);
+	cudaEventDestroy(gpustart);
+	cudaEventDestroy(gpustop);
 
 
-        cudaMemcpy(deviceRef, d_C, Cxy * sizeof(float), cudaMemcpyDeviceToHost);
-        printf("Matrix_deviceRef: (%d×%d)  <<<(%d,%d),(%d,%d)>>>  GPU运行时间为：%fs\n",
-                M, N, grid.x, grid.y, block.x, block.y, elapsedTime / 1000);
-        //printMatrix(deviceRef, M, N);
+	cudaMemcpy(deviceRef, d_C, Cxy * sizeof(float), cudaMemcpyDeviceToHost);
+	printf("Matrix_deviceRef: (%d×%d)  <<<(%d,%d),(%d,%d)>>>  GPU运行时间为：%fs\n",
+			M, N, grid.x, grid.y, block.x, block.y, elapsedTime / 1000);
+	//printMatrix(deviceRef, M, N);
 
 
 	elapsedTime = 0.0;
