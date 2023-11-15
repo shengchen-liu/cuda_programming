@@ -7,17 +7,17 @@ using namespace std;
 
 __global__
 void multiplyMatrixOnDevice(float* d_A, float* d_B, float* d_C, int M, int K, int N) {
-    int ix = threadIdx.x + blockDim.x * blockIdx.x; // row number
-	int iy = threadIdx.y + blockDim.y*blockIdx.y;//col number
+    int ix = threadIdx.x + blockDim.x * blockIdx.x; // idx along x
+	int iy = threadIdx.y + blockDim.y * blockIdx.y; // idx along y
 
-	if (ix < N_p && iy < M_p)
+	if (ix < N && iy < M)
 	{
 		float sum = 0;
-		for (int k = 0; k < K_p; k++)
+		for (int k = 0; k < K; k++)
 		{
-			sum += array_A[iy*K_p + k] * array_B[k*N_p + ix];
+			sum += d_A[iy*K + k] * d_B[k*N + ix];
 		}
-		array_C[iy*N_p + ix] = sum;
+		d_C[iy*N + ix] = sum;
 	}
 }
 
@@ -35,6 +35,10 @@ int main(int argc, char* argv[]) {
         cout << "Usage: ./matrixMultiplyCPU <M> <K> <N>" << endl;
         return -1;
     }
+
+	float elapsedTime = 0.0;
+    clock_t start = 0, finish = 0;
+    float time;
 
     int M = stoi(argv[1]);
     int K = stoi(argv[2]);
@@ -71,10 +75,16 @@ int main(int argc, char* argv[]) {
     dim3 block(dimX, dimY);
 	dim3 grid((M + block.x - 1) / block.x, (N + block.y - 1) / block.y);  // 
 
+    start = clock();
 	multiplyMatrixOnDevice<<<grid,block>>> (d_A, d_B, d_C, M, K, N);
+    finish = clock();
+    time = (float)(finish - start) / CLOCKS_PER_SEC;
 
     // copy to host
-    cudaMe
-    ss
+    cudaMemcpy(C, d_C, Cxy * sizeof(float), cudaMemcpyDeviceToHost);
+    
+	printf("Matrix_deviceRef: (%d×%d)  <<<(%d,%d),(%d,%d)>>>  GPU运行时间为：%fs\n",
+			M, N, grid.x, grid.y, block.x, block.y, time);
+
     return 0;
 }
