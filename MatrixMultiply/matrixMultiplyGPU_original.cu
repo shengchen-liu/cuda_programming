@@ -36,10 +36,6 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-	float elapsedTime = 0.0;
-    clock_t start = 0, finish = 0;
-    float time;
-
     int M = stoi(argv[1]);
     int K = stoi(argv[2]);
     int N = stoi(argv[3]);
@@ -69,22 +65,39 @@ int main(int argc, char* argv[]) {
     cudaMemcpy(d_A, A, Axy * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, B, Bxy * sizeof(float), cudaMemcpyHostToDevice);
 
+    printf("\n\n");
+	printf("------------------------------------------------------------------------------------\n");
+	printf("Computing matrix product using multiplicateMatrixOnDevice \n");
+	printf("------------------------------------------------------------------------------------\n");
+
+
     // kernel operation
     int dimX = 2;
     int dimY = 2;
     dim3 block(dimX, dimY);
 	dim3 grid((M + block.x - 1) / block.x, (N + block.y - 1) / block.y);  // 
 
-    start = clock();
+    cudaEvent_t gpustart, gpustop;
+	float elapsedTime = 0.0;
+	cudaEventCreate(&gpustart);
+	cudaEventCreate(&gpustop);
+	cudaEventRecord(gpustart, 0);
+
 	multiplyMatrixOnDevice<<<grid,block>>> (d_A, d_B, d_C, M, K, N);
-    finish = clock();
-    time = (float)(finish - start) / CLOCKS_PER_SEC;
+
+	cudaDeviceSynchronize();
+	cudaEventRecord(gpustop, 0);
+	cudaEventSynchronize(gpustop);
+
+	cudaEventElapsedTime(&elapsedTime, gpustart, gpustop);
+	cudaEventDestroy(gpustart);
+	cudaEventDestroy(gpustop);
 
     // copy to host
     cudaMemcpy(C, d_C, Cxy * sizeof(float), cudaMemcpyDeviceToHost);
     
 	printf("Matrix_deviceRef: (%d×%d)  <<<(%d,%d),(%d,%d)>>>  GPU运行时间为：%fs\n",
-			M, N, grid.x, grid.y, block.x, block.y, time);
+			M, N, grid.x, grid.y, block.x, block.y, elapsedTime / 1000);
 
     return 0;
 }
