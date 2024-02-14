@@ -1,0 +1,8 @@
+ViT-pytorch/
+*.onnx
+*.o
+*.so
+*.pyc
+*.plan
+*Cache
+trtexec
