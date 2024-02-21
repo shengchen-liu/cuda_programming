@@ -5,3 +5,4 @@
 bert-base-uncased
 *Cache
 answer/
+__pycache__

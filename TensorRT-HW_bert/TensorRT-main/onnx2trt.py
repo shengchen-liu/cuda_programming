@@ -15,6 +15,8 @@ import transformers
 
 from trt_helper import *
 
+import ctypes
+
 def onnx2trt(onnxFile, plan_name):
     logger = trt.Logger(trt.Logger.VERBOSE)
 
@@ -79,6 +81,8 @@ def trt_infer(plan_name):
 
     # # TRT_LOGGER = trt.Logger(trt.Logger.INFO)
 
+    # soFile = "./LayerNormPlugin/layerNorm.so"
+    # ctypes.cdll.LoadLibrary(soFile)
     # handle = ctypes.CDLL("libnvinfer_plugin.so", mode=ctypes.RTLD_GLOBAL)
     # if not handle:
         # raise RuntimeError("Could not load plugin library. Is `libnvinfer_plugin.so` on your LD_LIBRARY_PATH?")

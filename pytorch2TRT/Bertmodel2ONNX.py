@@ -42,6 +42,8 @@ def model_test(model, tokenizer, text):
     input_ids = encoded_input['input_ids'].int().detach().numpy()
     token_type_ids = encoded_input['token_type_ids'].int().detach().numpy()
     print(input_ids.shape)
+    attention_mask = encoded_input['attention_mask'].int().detach().numpy()
+    print(attention_mask.shape)
 
     # save data
     npz_file = BERT_PATH + '/case_data.npz'
@@ -49,7 +51,8 @@ def model_test(model, tokenizer, text):
              input_ids=input_ids,
              token_type_ids=token_type_ids,
              position_ids=position_ids,
-             logits=output[0].detach().numpy())
+             logits=output[0].detach().numpy(),
+             attention_mask=attention_mask)
 
     data = np.load(npz_file)
     print(data['input_ids'])
@@ -57,7 +60,11 @@ def model_test(model, tokenizer, text):
 
 def model2onnx(model, tokenizer, text):
     print("===================model2onnx=======================")
-    encoded_input = tokenizer.encode_plus(text, return_tensors="pt")
+    encoded_input = tokenizer.encode_plus(text, return_tensors="pt")  # return: transformers.BatchEncoding
+    # encoded_input is a dict ((‘input_ids’, ‘attention_mask’, etc.).)
+    # input_ids are the indices corresponding to each token in the sentence.
+    # attention_mask indicates whether a token should be attended to or not.
+    # token_type_ids identifies which sequence a token belongs to when there is more than one sequence.
     print(encoded_input)
 
     # convert model to onnx

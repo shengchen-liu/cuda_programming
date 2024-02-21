@@ -13,8 +13,10 @@ from typing import Optional, Tuple
 import pycuda.driver as cuda
 import pycuda.autoinit
 
+
 class TrtNetworkHelper():
     """TensorRT Network Definition helper for Pytorch"""
+
     def __init__(self, network, plugin_registry, logger):
         self.network = network
         self.plugin_registry = plugin_registry
@@ -32,7 +34,8 @@ class TrtNetworkHelper():
         layer.name = str(self.network.num_layers) + "_" + name
         for i in range(0, layer.num_outputs):
             shape = layer.get_output(i).shape
-            self.logger.log(trt.Logger.INFO, "[Network] " + layer.name + ", output[" + str(i) + "] shape= " + str(shape))
+            self.logger.log(trt.Logger.INFO,
+                            "[Network] " + layer.name + ", output[" + str(i) + "] shape= " + str(shape))
 
         return None
 
@@ -48,7 +51,7 @@ class TrtNetworkHelper():
             # print(trt.volume(shape))
 
             # if len(shape) is 1:
-                # raise RuntimeError("add " + layer.name + " failed!")
+            # raise RuntimeError("add " + layer.name + " failed!")
 
     def layer_post_process(self, trt_layer, layer_name, precision):
         """
@@ -95,7 +98,8 @@ class TrtNetworkHelper():
     def addGELU(self, x, layer_name=None, precision=None):
         POW = self.network.add_constant((1, 1, 1), trt.Weights(np.ascontiguousarray([3.0], dtype=np.float32)))
         MULTIPLY = self.network.add_constant((1, 1, 1), trt.Weights(np.ascontiguousarray([0.044715], dtype=np.float32)))
-        SQRT = self.network.add_constant((1, 1, 1), trt.Weights((np.ascontiguousarray([0.79788456080286535587989211986876], dtype=np.float32))))
+        SQRT = self.network.add_constant((1, 1, 1), trt.Weights(
+            (np.ascontiguousarray([0.79788456080286535587989211986876], dtype=np.float32))))
         ONE = self.network.add_constant((1, 1, 1), trt.Weights((np.ascontiguousarray([1.0], dtype=np.float32))))
         HALF = self.network.add_constant((1, 1, 1), trt.Weights((np.ascontiguousarray([0.5], dtype=np.float32))))
         X_pow = self.network.add_elementwise(x, POW.get_output(0), trt.ElementWiseOperation.POW)
@@ -120,13 +124,32 @@ class TrtNetworkHelper():
         return gelu_layer.get_output(0)
 
     def addLayerNorm(self, x, gamma, beta, layer_name=None, precision=None):
-        # TODO: create your layer norm plugin
+        # DONE: create your layer norm plugin
+        layerNorm_layer = self.network.add_plugin_v2(
+            [x, gamma, beta], self.getLayerNormPlugin())
 
-        return trt_layer.get_output(0)
+        if layer_name is None:
+            layer_name = "nn.LayerNorm"
+        else:
+            layer_name = "nn.LayerNorm." + layer_name
+
+        self.layer_post_process(layerNorm_layer, layer_name, precision)
+
+        return layerNorm_layer.get_output(0)
 
     def addLinear(self, x, weight, bias, layer_name=None, precision=None):
-        # TODO: add Linear
+        # DONE: add Linear
+        matrix_multiply_layer = self.network.add_matrix_multiply(x, trt.MatrixOperation.NONE, weight,
+                                                                 trt.MatrixOperation.NONE)
+        trt_layer = self.network.add_elementwise(matrix_multiply_layer.get_output(), bias, trt.ElementWiseOperation.SUM)
 
+        if layer_name is None:
+            layer_name = "nn.Linear"
+        else:
+            layer_name = "nn.Linear." + layer_name
+
+        self.layer_post_process(trt_layer, layer_name, precision)
+        x = trt_layer.get_output(0)
         return x
 
     def addReLU(self, layer, x, layer_name=None, precision=None):
@@ -141,7 +164,23 @@ class TrtNetworkHelper():
         return x
 
     def addSoftmax(self, x: trt.ITensor, dim: int = -1, layer_name=None, precision=None) -> trt.ITensor:
-        # TODO: add softmax
+        # DONE: add softmax
+        trt_layer = self.network.add_softmax(x)
+        shape = x.shape  # [batch_size, h, len, len]
+        if dim == -1:
+            trt_layer.setAxes(1)
+        else:
+            shift = len(shape) - 1 - dim
+            trt_layer.setAxes(1 << shift)
+
+        if layer_name is None:
+            layer_name = "trt.Softmax"
+        else:
+            layer_name = "trt.Softmax." + layer_name
+
+        self.layer_post_process(trt_layer, layer_name, precision)
+
+        x = trt_layer.get_output(0)
         return x
 
     ################## unary op ###################
@@ -159,7 +198,16 @@ class TrtNetworkHelper():
 
     ################## elementwise op ###################
     def addAdd(self, a, b, layer_name=None, precision=None):
-        # add Add
+        # DONE add Add
+        trt_layer = self.network.add_elementwise(a, b, trt.ElementWiseOperation.SUM)
+
+        if layer_name is None:
+            layer_name = "trt.Add"
+        else:
+            layer_name = "trt.Add." + layer_name
+
+        self.layer_post_process(trt_layer, layer_name, precision)
+        x = trt_layer.get_output(0)
         return x
 
     # tensor and scalar op
@@ -171,14 +219,31 @@ class TrtNetworkHelper():
             precision: trt.DataType = None
     ) -> trt.ITensor:
         """scale"""
-        # TODOL add scale
+        # DONE add scale
+        trt_layer = self.network.add_scale(x, trt.MatrixOperation.NONE, trt.MatrixOperation.NONE, scale,
+                                           trt.MatrixOperation.NONE)
 
+        if layer_name is None:
+            layer_name = "trt.Scale"
+        else:
+            layer_name = "trt.Scale." + layer_name
+
+        self.layer_post_process(trt_layer, layer_name, None)
+        x = trt_layer.get_output(0)
         return x
 
     def addMatMul(self, a: trt.ITensor, b: trt.ITensor, layer_name: Optional[str] = None) -> trt.ITensor:
-        # add MatMul
-        return x
+        # DONE add MatMul
+        trt_layer = self.network.add_matrix_multiply(a, trt.MatrixOperation.NONE, b, trt.MatrixOperation.TRANSPOSE)
 
+        if layer_name is None:
+            layer_name = "trt.MatMul"
+        else:
+            layer_name = "trt.MatMul." + layer_name
+
+        self.layer_post_process(trt_layer, layer_name, None)
+        x = trt_layer.get_output(0)
+        return x
 
     def addConstant(self, w, layer_name: Optional[str] = None) -> trt.ITensor:
         trt_layer = self.network.add_constant(w.shape, w)
@@ -193,12 +258,12 @@ class TrtNetworkHelper():
         return x
 
     def addShuffle(
-        self,
-        x: trt.ITensor,
-        first_transpose: trt.Permutation,
-        reshape_dims: trt.Dims,
-        second_transpose: trt.Permutation,
-        layer_name: Optional[str] = None
+            self,
+            x: trt.ITensor,
+            first_transpose: trt.Permutation,
+            reshape_dims: trt.Dims,
+            second_transpose: trt.Permutation,
+            layer_name: Optional[str] = None
     ) -> trt.ITensor:
         """"""
         trt_layer = self.network.add_shuffle(x)
@@ -221,9 +286,17 @@ class TrtNetworkHelper():
         x = trt_layer.get_output(0)
         return x
 
+    def getLayerNormPlugin(self):
+        for c in trt.get_plugin_registry().plugin_creator_list:
+            # print(c.name)
+            if c.name == 'LayerNorm':
+                return c.create_plugin(c.name, trt.PluginFieldCollection([]))
+        return None
+
 
 class InferHelper():
     """"""
+
     def __init__(self, plan_name, trt_logger):
         """"""
         self.logger = trt_logger
@@ -245,7 +318,7 @@ class InferHelper():
             # print(inputs[i].nbytes)
 
         # for i in range(0, self.engine.num_bindings):
-            # print("get_binding_shape:" + str(self.context.get_binding_shape(i)))
+        # print("get_binding_shape:" + str(self.context.get_binding_shape(i)))
 
         outputs = []
         for i in range(len(inputs), self.engine.num_bindings):
@@ -263,7 +336,7 @@ class InferHelper():
                 self.logger.log(trt.Logger.ERROR, "[Infer] output shape is error!")
                 self.logger.log(trt.Logger.ERROR, "trt_output.shape = " + str(trt_output_shape))
                 self.logger.log(trt.Logger.ERROR, "base_output.shape = " + str(outputs[output_idx].shape))
-                assert(0)
+                assert (0)
 
         # warm up
         self.context.execute_v2(bufferD)
@@ -272,8 +345,8 @@ class InferHelper():
 
         self.context.execute_v2(bufferD)
 
-        T2 =time.perf_counter()
-        print("time=" + str((T2-T1) * 1000) + "ms")
+        T2 = time.perf_counter()
+        print("time=" + str((T2 - T1) * 1000) + "ms")
 
         for i in range(nInput, nInput + nOutput):
             cuda.memcpy_dtoh(outputs[i - nInput].ravel(), bufferD[i])

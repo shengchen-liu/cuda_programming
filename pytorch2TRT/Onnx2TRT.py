@@ -30,5 +30,7 @@ if __name__ == '__main__':
 
     print(os.environ.get('LD_LIBRARY_PATH', None))
     engine = build_engine("checkpoints/model-sim.onnx")
-    with open('engine.trt', 'wb') as f:
-        f.write(bytearray(engine.serialize()))
+    with open("engine.trt", "wb") as f:
+        f.write(engine)
+    # with open('engine.trt', 'rb') as fb:
+    #     f.write(bytearray(engine.serialize()))

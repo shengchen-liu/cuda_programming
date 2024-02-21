@@ -12,7 +12,7 @@ print("pytorch:", torch.__version__)
 # print("onnxruntime device:", ort.get_device())
 print("transformers:", transformers.__version__)
 
-BERT_PATH = 'bert-base-uncased'
+BERT_PATH = '/home/shengchen/cuda_programming/bert-base-uncased'
 
 
 def model_test(model, tokenizer, text):

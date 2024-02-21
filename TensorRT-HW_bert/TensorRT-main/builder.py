@@ -32,7 +32,7 @@ handle = ctypes.CDLL("libnvinfer_plugin.so", mode=ctypes.RTLD_GLOBAL)
 if not handle:
     raise RuntimeError("Could not load plugin library. Is `libnvinfer_plugin.so` on your LD_LIBRARY_PATH?")
 
-handle = ctypes.CDLL("LayerNorm.so", mode=ctypes.RTLD_GLOBAL)
+handle = ctypes.CDLL("./LayerNormPlugin/LayerNorm.so", mode=ctypes.RTLD_GLOBAL)
 if not handle:
     raise RuntimeError("Could not load plugin library. Is `LayerNorm.so` on your LD_LIBRARY_PATH?")
 
